@@ -154,10 +154,9 @@ module SalesforceBulkApi
       headers = Hash.new
 
       response = @connection.get_request(nil, path, headers)
-
       begin
         response_parsed = XmlSimple.xml_in(response) if response
-        response_parsed
+        [response, response_parsed]
       rescue StandardError => e
         puts "Error parsing XML response for #{@job_id}, batch #{batch_id}"
         puts e
@@ -173,8 +172,17 @@ module SalesforceBulkApi
           while true
             if self.check_job_status['state'][0] == 'Closed'
               @batch_ids.each do |batch_id|
-                batch_state = self.check_batch_status(batch_id)
-                if batch_state['state'][0] != "Queued" && batch_state['state'][0] != "InProgress"
+                raw_response, batch_state = self.check_batch_status(batch_id)
+
+                if batch_state.nil? or batch_state['state'].nil?
+                  puts "batch_state or batch_state['state'] is nil"
+                  puts '==========================='
+                  puts raw_response
+                  puts '---------------------------'
+                  puts batch_state
+                  puts '==========================='
+
+                elsif batch_state['state'][0] != "Queued" && batch_state['state'][0] != "InProgress"
                   state << (batch_state)
                   @batch_ids.delete(batch_id)
                 end

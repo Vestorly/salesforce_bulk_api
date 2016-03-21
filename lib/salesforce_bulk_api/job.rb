@@ -170,25 +170,31 @@ module SalesforceBulkApi
         state = []
         Timeout::timeout(timeout, SalesforceBulkApi::JobTimeout) do
           while true
-            if self.check_job_status['state'][0] == 'Closed'
-              @batch_ids.each do |batch_id|
-                raw_response, batch_state = self.check_batch_status(batch_id)
+            begin
+              if self.check_job_status['state'][0] == 'Closed'
+                @batch_ids.each do |batch_id|
+                  raw_response, batch_state = self.check_batch_status(batch_id)
 
-                if batch_state.nil? or batch_state['state'].nil?
-                  puts "batch_state or batch_state['state'] is nil"
-                  puts '==========================='
-                  puts raw_response
-                  puts '---------------------------'
-                  puts batch_state
-                  puts '==========================='
+                  if batch_state.nil? or batch_state['state'].nil?
+                    puts "batch_state or batch_state['state'] is nil"
+                    puts '==========================='
+                    puts raw_response
+                    puts '---------------------------'
+                    puts batch_state
+                    puts '==========================='
 
-                elsif batch_state['state'][0] != "Queued" && batch_state['state'][0] != "InProgress"
-                  state << (batch_state)
-                  @batch_ids.delete(batch_id)
+                  elsif batch_state['state'][0] != "Queued" && batch_state['state'][0] != "InProgress"
+                    state << (batch_state)
+                    @batch_ids.delete(batch_id)
+                  end
                 end
+                break if @batch_ids.empty?
+              else
+                break
               end
-              break if @batch_ids.empty?
-            else
+            rescue StandardError => e
+              puts "NilClass Error: #{e}"
+              puts "check_job_status: #{self.check_job_status}"
               break
             end
           end
